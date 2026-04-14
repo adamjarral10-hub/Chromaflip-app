@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ChromaFlip — Image Colorizer</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet" />
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+
+  <!-- ╔══ NOISE OVERLAY ══╗ -->
+  <div class="noise-overlay" aria-hidden="true"></div>
+
+  <!-- ╔══ HEADER ══╗ -->
+  <header class="site-header">
+    <div class="header-inner container-fluid">
+      <div class="brand">
+        <span class="brand-icon">◈</span>
+        <span class="brand-name">CHROMA<em>FLIP</em></span>
+      </div>
+      <p class="brand-tagline">Color ↔ Grayscale · Instant Image Conversion</p>
+    </div>
+    <div class="header-stripe" aria-hidden="true"></div>
+  </header>
+
+  <!-- ╔══ HERO ══╗ -->
+  <section class="hero-section container-fluid">
+    <div class="hero-text">
+      <h1 class="hero-title">
+        <span class="line-1">BRING IT</span>
+        <span class="line-2">TO LIFE.</span>
+      </h1>
+      <p class="hero-sub">
+        Upload any image — ChromaFlip detects whether it's black &amp; white or coloured
+        and applies the opposite transformation automatically.
+      </p>
+    </div>
+    <div class="hero-badges">
+      <span class="badge-pill">B&amp;W → Color</span>
+      <span class="badge-pill">Color → B&amp;W</span>
+      <span class="badge-pill">Auto-detect</span>
+    </div>
+  </section>
+
+  <!-- ╔══ UPLOAD CARD ══╗ -->
+  <main class="main-content container">
+
+    <div class="upload-card" id="uploadCard">
+      <form id="uploadForm" enctype="multipart/form-data" novalidate>
+
+        <!-- Drop zone -->
+        <div class="drop-zone" id="dropZone" role="button" tabindex="0"
+             aria-label="Click or drag an image here to upload">
+          <div class="drop-zone-inner">
+            <div class="drop-icon" aria-hidden="true">
+              <svg width="52" height="52" viewBox="0 0 52 52" fill="none">
+                <rect x="1" y="1" width="50" height="50" rx="12" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 3"/>
+                <path d="M26 34V18M18 26l8-8 8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M16 38h20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <p class="drop-label">Drag &amp; drop your image here</p>
+            <p class="drop-sub">or click to browse</p>
+            <span class="drop-formats">JPG · PNG · WEBP · max 10 MB</span>
+          </div>
+          <input type="file" id="imageInput" name="image"
+                 accept=".jpg,.jpeg,.png,.webp" class="file-input" />
+        </div>
+
+        <!-- Selected file preview -->
+        <div class="selected-file d-none" id="selectedFile">
+          <span class="file-thumb-wrap">
+            <img id="thumbImg" src="" alt="preview thumbnail" class="file-thumb" />
+          </span>
+          <span class="file-info">
+            <span class="file-name" id="fileName">—</span>
+            <span class="file-size" id="fileSize">—</span>
+          </span>
+          <button type="button" class="clear-btn" id="clearBtn" aria-label="Remove file">✕</button>
+        </div>
+
+        <!-- Error message -->
+        <div class="error-box d-none" id="errorBox" role="alert">
+          <span class="error-icon">⚠</span>
+          <span id="errorMsg">Something went wrong.</span>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="process-btn" id="processBtn" disabled>
+          <span class="btn-label">Process Image</span>
+          <span class="btn-spinner d-none" id="btnSpinner" aria-hidden="true"></span>
+        </button>
+
+      </form>
+    </div>
+
+    <!-- ╔══ RESULT SECTION ══╗ -->
+    <section class="result-section d-none" id="resultSection" aria-live="polite">
+
+      <div class="result-header">
+        <h2 class="result-title">Results</h2>
+        <span class="result-badge" id="resultBadge">—</span>
+        <button class="try-again-btn" id="tryAgainBtn">↩ Try Another</button>
+      </div>
+
+      <div class="result-grid">
+        <!-- Original -->
+        <div class="result-card">
+          <div class="result-label">Original</div>
+          <div class="result-img-wrap">
+            <img id="origImg" src="" alt="Original image" class="result-img" />
+          </div>
+          <a id="origDownload" href="" download class="dl-btn">↓ Download</a>
+        </div>
+
+        <!-- Arrow -->
+        <div class="result-arrow" aria-hidden="true">
+          <span>→</span>
+        </div>
+
+        <!-- Processed -->
+        <div class="result-card result-card--processed">
+          <div class="result-label" id="processedLabel">Processed</div>
+          <div class="result-img-wrap">
+            <img id="procImg" src="" alt="Processed image" class="result-img" />
+          </div>
+          <a id="procDownload" href="" download class="dl-btn dl-btn--accent">↓ Download</a>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- ╔══ HOW IT WORKS ══╗ -->
+  <section class="how-section container">
+    <h2 class="section-title">How It Works</h2>
+    <div class="steps-row">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-text">
+          <strong>Upload</strong>
+          Drop any JPG, PNG, or WEBP image into the upload zone.
+        </div>
+      </div>
+      <div class="step-divider" aria-hidden="true">——</div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-text">
+          <strong>Auto-detect</strong>
+          ChromaFlip analyses pixel channels to determine if your image is
+          grayscale or coloured.
+        </div>
+      </div>
+      <div class="step-divider" aria-hidden="true">——</div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-text">
+          <strong>Transform</strong>
+          B&amp;W images receive a warm cinematic colorization;
+          colour images are converted to high-quality grayscale.
+        </div>
+      </div>
+      <div class="step-divider" aria-hidden="true">——</div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-text">
+          <strong>Download</strong>
+          Save both the original and the processed result instantly.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ╔══ FOOTER ══╗ -->
+  <footer class="site-footer">
+    <div class="footer-inner container-fluid">
+      <span class="footer-brand">◈ CHROMAFLIP</span>
+      <span class="footer-copy">Developed by <strong>Adam Jarral</strong></span>
+      <span class="footer-tech">Flask · Pillow · NumPy · Bootstrap</span>
+    </div>
+  </footer>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- App Script -->
+  <script>
+  (() => {
+    'use strict';
+
+    // ── Elements ──────────────────────────────────────────────────────────
+    const dropZone      = document.getElementById('dropZone');
+    const imageInput    = document.getElementById('imageInput');
+    const selectedFile  = document.getElementById('selectedFile');
+    const thumbImg      = document.getElementById('thumbImg');
+    const fileName      = document.getElementById('fileName');
+    const fileSize      = document.getElementById('fileSize');
+    const clearBtn      = document.getElementById('clearBtn');
+    const errorBox      = document.getElementById('errorBox');
+    const errorMsg      = document.getElementById('errorMsg');
+    const processBtn    = document.getElementById('processBtn');
+    const btnSpinner    = document.getElementById('btnSpinner');
+    const uploadForm    = document.getElementById('uploadForm');
+
+    const resultSection   = document.getElementById('resultSection');
+    const resultBadge     = document.getElementById('resultBadge');
+    const processedLabel  = document.getElementById('processedLabel');
+    const origImg         = document.getElementById('origImg');
+    const procImg         = document.getElementById('procImg');
+    const origDownload    = document.getElementById('origDownload');
+    const procDownload    = document.getElementById('procDownload');
+    const tryAgainBtn     = document.getElementById('tryAgainBtn');
+
+    // ── State ─────────────────────────────────────────────────────────────
+    let selectedFileObj = null;
+    const ALLOWED = ['image/jpeg', 'image/png', 'image/webp'];
+    const MAX_BYTES = 10 * 1024 * 1024;
+
+    // ── Helpers ───────────────────────────────────────────────────────────
+    function showError(msg) {
+      errorMsg.textContent = msg;
+      errorBox.classList.remove('d-none');
+    }
+
+    function hideError() {
+      errorBox.classList.add('d-none');
+    }
+
+    function formatBytes(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+
+    function setFile(file) {
+      hideError();
+      if (!ALLOWED.includes(file.type)) {
+        showError('Unsupported file type. Please upload JPG, PNG, or WEBP.');
+        return;
+      }
+      if (file.size > MAX_BYTES) {
+        showError('File is too large. Maximum size is 10 MB.');
+        return;
+      }
+      selectedFileObj = file;
+
+      // Thumbnail
+      const reader = new FileReader();
+      reader.onload = e => { thumbImg.src = e.target.result; };
+      reader.readAsDataURL(file);
+
+      fileName.textContent = file.name;
+      fileSize.textContent = formatBytes(file.size);
+      selectedFile.classList.remove('d-none');
+      dropZone.classList.add('has-file');
+      processBtn.disabled = false;
+    }
+
+    function clearFile() {
+      selectedFileObj = null;
+      imageInput.value = '';
+      thumbImg.src = '';
+      selectedFile.classList.add('d-none');
+      dropZone.classList.remove('has-file');
+      processBtn.disabled = true;
+      hideError();
+    }
+
+    // ── Drop zone interactions ────────────────────────────────────────────
+    dropZone.addEventListener('click', () => imageInput.click());
+    dropZone.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') imageInput.click();
+    });
+
+    dropZone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropZone.classList.add('drag-over');
+    });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) setFile(file);
+    });
+
+    imageInput.addEventListener('change', () => {
+      if (imageInput.files[0]) setFile(imageInput.files[0]);
+    });
+
+    clearBtn.addEventListener('click', clearFile);
+    tryAgainBtn.addEventListener('click', () => {
+      resultSection.classList.add('d-none');
+      clearFile();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // ── Form submit ───────────────────────────────────────────────────────
+    uploadForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      if (!selectedFileObj) return;
+
+      hideError();
+      processBtn.disabled = true;
+      processBtn.querySelector('.btn-label').textContent = 'Processing…';
+      btnSpinner.classList.remove('d-none');
+
+      const fd = new FormData();
+      fd.append('image', selectedFileObj);
+
+      try {
+        const res  = await fetch('/upload', { method: 'POST', body: fd });
+        const data = await res.json();
+
+        if (!res.ok || data.error) {
+          showError(data.error || 'Server error. Please try again.');
+          return;
+        }
+
+        // Populate result section
+        origImg.src        = '/' + data.original;
+        procImg.src        = '/' + data.processed;
+        origDownload.href  = '/' + data.original;
+        procDownload.href  = '/' + data.processed;
+
+        const isColorized = data.mode === 'colorized';
+        resultBadge.textContent    = isColorized ? '🎨 B&W → Color' : '⬛ Color → Grayscale';
+        resultBadge.className      = 'result-badge ' + (isColorized ? 'badge--color' : 'badge--gray');
+        processedLabel.textContent = isColorized ? 'Colorized' : 'Grayscale';
+
+        resultSection.classList.remove('d-none');
+        resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      } catch {
+        showError('Network error. Please check your connection and try again.');
+      } finally {
+        processBtn.disabled = false;
+        processBtn.querySelector('.btn-label').textContent = 'Process Image';
+        btnSpinner.classList.add('d-none');
+      }
+    });
+
+  })();
+  </script>
+
+</body>
+</html>
